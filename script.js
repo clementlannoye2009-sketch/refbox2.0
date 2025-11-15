@@ -8,7 +8,7 @@ const couleurs = [
 
 // --- Initialisation des sons ---
 const sons = [];
-sons[1] = new Audio("AJOUTER TON SON");
+sons[1] = new Audio(son/cri1.mp3);
 sons[2] = new Audio("AJOUTER TON SON");
 sons[3] = new Audio("AJOUTER TON SON");
 sons[4] = new Audio("AJOUTER TON SON");
