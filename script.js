@@ -1,89 +1,113 @@
+// script.js — version debug + relance fiable du son au clic
+
 const grid = document.getElementById("grid-cris");
 const globalCounterDiv = document.getElementById("global-counter");
 const img = document.getElementById("cry-image");
 
-// --- Sons ---
-// Exemple pour 70 sons : tu remplaces "AJOUTER TON SON" par tes fichiers MP3
+// --- Sons : adapte les chemins selon ton dépôt (sons/cri1.mp3 etc.) ---
 const sons = [];
-sons[1] = new Audio("sons/cri1.mp3");
-sons[2] = new Audio("sons/cri2.mp3");
-sons[3] = new Audio("sons/cri3.mp3");
-sons[4] = new Audio("sons/cri4.mp3");
-sons[5] = new Audio("sons/cri5.mp3");
-sons[6] = new Audio("sons/cri6.mp3");
-sons[7] = new Audio("sons/cri7.mp3");
-sons[8] = new Audio("sons/cri8.mp3");
-sons[9] = new Audio("sons/cri9.mp3");
-sons[10] = new Audio("sons/cri10.mp3");
-// ... continue jusqu'à 70
+// Exemple : si tu as cri1.mp3 dans /sons/, garde "sons/cri1.mp3"
+for (let i = 1; i <= 70; i++) {
+  // Remplace "sons/criX.mp3" par tes vrais fichiers si noms différents
+  sons[i] = new Audio(`sons/cri${i}.mp3`);
+  // Précharge et ajoute handler d'erreur réseau
+  sons[i].preload = "auto";
+  sons[i].addEventListener("error", (e) => {
+    console.warn(`Audio load error for sons[${i}] (path: sons/cri${i}.mp3)`, e);
+  });
+}
 
-// --- Couleurs des cases ---
-const couleurs = ["#ff3b30", "#007aff", "#ffcc00", "#34c759","#ff2d55", "#ff9500", "#af52de", "#5ac8fa"];
+// --- Couleurs ---
+const couleurs = ["#ff3b30", "#007aff", "#ffcc00", "#34c759", "#ff2d55", "#ff9500", "#af52de", "#5ac8fa"];
 
-// --- Données des cris ---
+// --- Données ---
 let cris = [];
 let globalClicks = 0;
-
 for (let i = 1; i <= 70; i++) {
-    cris.push({
-        id: i,
-        unlocked: i === 1,
-        compteur: 0,
-        nomDebloque: `debloc${i}`,
-        nomBloque: `bloc${i}`
-    });
+  cris.push({ id: i, unlocked: i === 1, compteur: 0, nomDebloque: `debloc${i}`, nomBloque: `bloc${i}` });
 }
 
-// --- Affichage compteur global ---
+// --- UI ---
 function renderGlobalCounter() {
-    globalCounterDiv.textContent = `${globalClicks} cris`;
+  globalCounterDiv.textContent = `${globalClicks} cris`;
 }
 
-// --- Affichage des cases ---
+function getNextToUnlock() {
+  return cris.find(c => !c.unlocked);
+}
+
+function tryPlaySound(id) {
+  if (!id || !sons[id]) {
+    console.warn("tryPlaySound: son introuvable, id =", id);
+    return;
+  }
+  try {
+    // reset and play; .play() renvoie une promesse
+    sons[id].currentTime = 0;
+    const p = sons[id].play();
+    if (p && p.catch) {
+      p.catch(err => {
+        console.error(`Play rejected for sons[${id}]`, err);
+      });
+    }
+  } catch (err) {
+    console.error(`Erreur lors du play() pour sons[${id}]`, err);
+  }
+}
+
 function render() {
-    grid.innerHTML = "";
-    cris.forEach((cri, index) => {
-        const div = document.createElement("div");
-        div.classList.add("case");
-        if (!cri.unlocked) div.classList.add("locked");
-        div.style.background = couleurs[index % couleurs.length];
+  grid.innerHTML = "";
+  const next = getNextToUnlock();
+  cris.forEach((cri, index) => {
+    const div = document.createElement("div");
+    div.className = "case" + (cri.unlocked ? "" : " locked");
+    div.style.background = couleurs[index % couleurs.length];
+    div.innerHTML = cri.unlocked ? `<div>${cri.nomDebloque}</div>` : `<div>🔒</div>`;
 
-        div.innerHTML = cri.unlocked ? `<div>${cri.nomDebloque}</div>` : `<div>🔒</div>`;
+    // affichage compteur uniquement pour celui en cours
+    if (next && cri.id === next.id) {
+      const compteurDiv = document.createElement("div");
+      compteurDiv.className = "counter";
+      compteurDiv.textContent = `${cri.compteur} / 100`;
+      div.appendChild(compteurDiv);
+      div.classList.add("unlocking");
+    }
 
-        div.onclick = () => {
-            globalClicks++;
-            cri.compteur++;
+    div.onclick = () => {
+      // clic utilisateur — doit autoriser la lecture audio
+      globalClicks++;
+      cri.compteur++;
 
-            // Relance le son du cri correspondant à la prochaine case à débloquer
-            let nextId = cris.find(c => !c.unlocked)?.id || 1;
-            if (sons[nextId]) {
-                sons[nextId].currentTime = 0;
-                sons[nextId].play();
-            }
+      // choisir l'id du son à jouer : prochain à débloquer (next) si existe, sinon 1
+      const nextNow = getNextToUnlock();
+      const playId = nextNow ? nextNow.id : 1;
+      console.log("Clic sur case id=", cri.id, "| nextToUnlock id=", playId, "| globalClicks=", globalClicks);
 
-            // Déblocage basé sur le compteur global
-            cris.forEach(c => {
-                const needed = (c.id - 1) * 100;
-                if (globalClicks >= needed) c.unlocked = true;
-            });
+      // relancer le son correspondant
+      tryPlaySound(playId);
 
-            renderGlobalCounter();
-            render();
-        };
+      // déblocage simple (comme avant)
+      cris.forEach(c => {
+        const needed = (c.id - 1) * 100;
+        if (globalClicks >= needed) c.unlocked = true;
+      });
 
-        grid.appendChild(div);
-    });
+      renderGlobalCounter();
+      render();
+    };
+
+    grid.appendChild(div);
+  });
 }
 
-// --- Initialisation ---
+// --- initialisation ---
 renderGlobalCounter();
 render();
 
-// --- Cliquer sur l’image joue aussi le son ---
-img.onclick = () => {
-    let nextId = cris.find(c => !c.unlocked)?.id || 1;
-    if (sons[nextId]) {
-        sons[nextId].currentTime = 0;
-        sons[nextId].play();
-    }
-};
+// cliquer sur l'image joue aussi le son du prochain à débloquer
+img.addEventListener("click", () => {
+  const nextNow = getNextToUnlock();
+  const playId = nextNow ? nextNow.id : 1;
+  console.log("Clic image -> playId =", playId);
+  tryPlaySound(playId);
+});
