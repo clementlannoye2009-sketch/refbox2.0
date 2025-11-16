@@ -3,19 +3,8 @@ const globalCounterDiv = document.getElementById("global-counter");
 const img = document.getElementById("cry-image");
 
 // --- Sons ---
-// Exemple pour 70 sons : tu remplaces "AJOUTER TON SON" par tes fichiers MP3
 const sons = [];
-sons[1] = new Audio("sons/cri1.mp3");
-sons[2] = new Audio("sons/cri2.mp3");
-sons[3] = new Audio("sons/cri3.mp3");
-sons[4] = new Audio("sons/cri4.mp3");
-sons[5] = new Audio("sons/cri5.mp3");
-sons[6] = new Audio("sons/cri6.mp3");
-sons[7] = new Audio("sons/cri7.mp3");
-sons[8] = new Audio("sons/cri8.mp3");
-sons[9] = new Audio("sons/cri9.mp3");
-sons[10] = new Audio("sons/cri10.mp3");
-// ... continue jusqu'à 70
+sons[1] = new Audio("sons/cri1.mp3"); // Premier son
 
 // --- Couleurs des cases ---
 const couleurs = ["#ff3b30", "#007aff", "#ffcc00", "#34c759","#ff2d55", "#ff9500", "#af52de", "#5ac8fa"];
@@ -54,12 +43,8 @@ function render() {
             globalClicks++;
             cri.compteur++;
 
-            // Relance le son du cri correspondant à la prochaine case à débloquer
-            let nextId = cris.find(c => !c.unlocked)?.id || 1;
-            if (sons[nextId]) {
-                sons[nextId].currentTime = 0;
-                sons[nextId].play();
-            }
+            // Joue le son du cri1 pour tester
+            if (sons[1]) sons[1].play();
 
             // Déblocage basé sur le compteur global
             cris.forEach(c => {
@@ -81,9 +66,5 @@ render();
 
 // --- Cliquer sur l’image joue aussi le son ---
 img.onclick = () => {
-    let nextId = cris.find(c => !c.unlocked)?.id || 1;
-    if (sons[nextId]) {
-        sons[nextId].currentTime = 0;
-        sons[nextId].play();
-    }
+    if (sons[1]) sons[1].play();
 };
